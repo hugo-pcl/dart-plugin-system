@@ -9,17 +9,23 @@ final logger = Logger('dart_plugin_system');
 Future<void> main(List<String> arguments) async {
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.loggerName} :: ${record.message}');
+    print(
+        '${record.level.name}: ${record.time}: ${record.loggerName} :: ${record.message}');
   });
 
   final loadResults = await PluginManager.instance.loadPlugins();
   logger.info('Plugins loaded: ${loadResults.length}');
 
-  final results = await PluginManager.instance.broadcast(KillMessage());
+  await PluginManager.instance
+      .broadcast(DebugMessage(message: 'Hello from main'));
 
-  for (final entry in results.entries) {
-    logger.info('Plugin ${entry.key} returned: ${entry.value}');
-  }
+  await Future.delayed(Duration(seconds: 1));
+
+  await PluginManager.instance.broadcast(EmptyMessage());
+
+  await Future.delayed(Duration(seconds: 1));
+
+  await PluginManager.instance.dispose();
 
   exit(0);
 }

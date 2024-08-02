@@ -64,8 +64,9 @@ class MessageTag {
   /// {@macro plugin_common.message_tag}
   const MessageTag(this.value);
 
-  static const MessageTag empty = MessageTag('');
+  static const MessageTag empty = MessageTag('empty');
   static const MessageTag debug = MessageTag('debug');
+  static const MessageTag intercom = MessageTag('intercom');
   static const MessageTag initial = MessageTag('initial');
   static const MessageTag ready = MessageTag('ready');
   static const MessageTag error = MessageTag('error');
@@ -118,6 +119,8 @@ class Message {
         MessageTag.error => ErrorMessage(error: data![0] as String),
         MessageTag.kill => KillMessage(),
         MessageTag.empty => EmptyMessage(),
+        MessageTag.debug => DebugMessage(message: data![0] as String),
+        MessageTag.intercom => IntercomMessage.unpack(list),
         _ => Message(MessageTag(tag), data),
       };
     } on Exception catch (e) {

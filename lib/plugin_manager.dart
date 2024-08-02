@@ -45,6 +45,9 @@ abstract class PluginManager {
     bool skipErrors,
   });
 
+  /// Dispose all loaded plugins.
+  Future<void> dispose();
+
   /// Get the plugin loader for the given plugin.
   PluginLoader getPluginLoader(PluginReference plugin);
 
@@ -136,5 +139,15 @@ class PluginManagerImpl extends PluginManager {
     );
 
     return _plugins.keys.toList();
+  }
+
+  @override
+  Future<void> dispose() async {
+    for (final plugin in _plugins.keys) {
+      final loader = _plugins[plugin];
+      await loader?.dispose();
+    }
+
+    _plugins.clear();
   }
 }

@@ -75,7 +75,6 @@ Future<void> main(List<String> args) async {
     final build = Builder();
     await build
         .cleanDirectory('example/plugins', ['.exe', '.aot', '.dill', '.jit']);
-    await build.cleanDirectory('plugins', ['.exe', '.aot', '.dill', '.jit']);
     await build.cleanDirectory('example', ['.exe', '.aot', '.dill', '.jit']);
     await build.cleanDirectory('.', ['.exe', '.aot', '.dill', '.jit']);
     print('Cleaned');

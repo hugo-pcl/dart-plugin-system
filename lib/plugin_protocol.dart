@@ -73,3 +73,43 @@ class DebugMessage extends Message {
   @override
   String toString() => 'DebugMessage{message: $message}';
 }
+
+class IntercomMessage extends Message {
+  IntercomMessage({
+    required this.to,
+    required this.from,
+    required this.message,
+  }) : super(MessageTag.intercom, [to, from, ...message.pack()]);
+
+  IntercomMessage.from(Message message)
+      : to = message.data![0] as PluginReference,
+        from = message.data![1] as PluginReference,
+        message = Message.unpack(message.data!.sublist(2)),
+        super(MessageTag.intercom);
+  
+  factory IntercomMessage.unpack(List<dynamic> list) {
+    if (list.isEmpty) {
+      throw ArgumentError('The list cannot be empty.');
+    }
+
+    final _ = list.first as String;
+    final to = list[1] as PluginReference;
+    final from = list[2] as PluginReference;
+    final message = Message.unpack(list.sublist(3));
+
+    return IntercomMessage(to: to, from: from, message: message);
+  }
+
+  final PluginReference to;
+  final PluginReference from;
+  final Message message;
+
+  @override
+  List pack() {
+    return [tag.value, to, from, ...message.pack()];
+  }
+
+  @override
+  String toString() =>
+      'IntercomMessage{to: $to, from: $from, message: $message}';
+}

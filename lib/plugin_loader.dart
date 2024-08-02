@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:dart_plugin_system/plugin_common.dart';
+import 'package:dart_plugin_system/plugin_manager.dart';
 import 'package:dart_plugin_system/plugin_protocol.dart';
 
 /// {@template plugin_loader}
@@ -25,6 +26,25 @@ abstract class PluginLoader {
   /// The plugin reference.
   String? _pluginReference;
 
+  /// Subscription to the receive port.
+  StreamSubscription? _pluginSubscription;
+
+  /// {@macro plugin_loader}
+  PluginLoader() {
+    _pluginSubscription = _receivePort.listen((event) {
+      if (event is List) {
+        final message = Message.unpack(event);
+        if (message.tag == MessageTag.intercom) {
+          // Handle intercom message by redirecting it to the plugin
+          final intercom = IntercomMessage.from(message);
+
+          // Send the message to the plugin
+          PluginManager.instance.getPluginLoader(intercom.to).send(intercom);
+        }
+      }
+    });
+  }
+
   /// Load the [plugin] with the given [args].
   /// [args] are the arguments to pass to the plugin entrypoint.
   /// If [isDebug] is true, the plugin will be loaded in debug mode (JIT).
@@ -41,6 +61,17 @@ abstract class PluginLoader {
 
   /// Check if the plugin is loaded.
   bool get isLoaded => _isolate != null && _pluginReference != null;
+
+  /// Dispose the plugin loader.
+  /// This will kill the plugin isolate and close the receive port.
+  Future<void> dispose() async {
+    _pluginSubscription?.cancel();
+    await send(KillMessage());
+
+    _isolate = null;
+    _pluginReference = null;
+    _sendPort = null;
+  }
 }
 
 /// {@macro plugin_loader}
