@@ -8,6 +8,7 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
+  hashlib: ^1.19.2
   logging: ^1.2.0
 
 dev_dependencies:

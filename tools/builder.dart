@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_plugin_system/plugin_common.dart';
+import 'package:hashlib/hashlib.dart';
+
 class Builder {
   /// List all dart files in the given path.
   Future<List<File>> listFiles(String path) async {
@@ -38,9 +41,20 @@ class Builder {
 
   /// Compile the given dart file to a .aot file.
   Future<void> compileAot(File file) async {
+    final platform = Platform.operatingSystem.toLowerCase();
+    final arch = await Arch.get().then((arch) => arch.name.toLowerCase());
+
+    final output =
+        '${file.uri.resolve('.').path}${file.uri.pathSegments.last.split('.').first}-$platform-$arch';
+
+    final outputAot = '$output.aot';
+    final outputChecksum = '$output.checksum';
+
     final process = await Process.start('dart', [
       'compile',
       'aot-snapshot',
+      '-o',
+      outputAot,
       file.uri.path,
     ]);
 
@@ -49,6 +63,14 @@ class Builder {
       print('Error compiling ${file.uri.path}');
       print(await process.stderr.transform(utf8.decoder).join());
     }
+
+    // Post-process the .aot file
+    final aotFile = File(outputAot);
+    final checksumFile = File(outputChecksum);
+
+    // Create checksum file
+    final checksum = await sha3_256.file(aotFile);
+    await checksumFile.writeAsString(checksum.toString());
   }
 
   /// Clean the given directory.
@@ -73,10 +95,12 @@ class Builder {
 Future<void> main(List<String> args) async {
   if (args.contains('clean')) {
     final build = Builder();
+    await build.cleanDirectory(
+        'example/plugins', ['.exe', '.aot', '.dill', '.jit', '.checksum']);
+    await build.cleanDirectory(
+        'example', ['.exe', '.aot', '.dill', '.jit', '.checksum']);
     await build
-        .cleanDirectory('example/plugins', ['.exe', '.aot', '.dill', '.jit']);
-    await build.cleanDirectory('example', ['.exe', '.aot', '.dill', '.jit']);
-    await build.cleanDirectory('.', ['.exe', '.aot', '.dill', '.jit']);
+        .cleanDirectory('.', ['.exe', '.aot', '.dill', '.jit', '.checksum']);
     print('Cleaned');
   }
 

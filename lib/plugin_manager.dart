@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dart_plugin_system/plugin_common.dart';
 import 'package:dart_plugin_system/plugin_loader.dart';
 import 'package:dart_plugin_system/plugin_protocol.dart';
+import 'package:hashlib/hashlib.dart';
 import 'package:logging/logging.dart';
 
 /// {@template plugin_manager}
@@ -30,6 +31,7 @@ abstract class PluginManager {
   Future<List<PluginReference>> loadPlugins({
     Duration timeout,
     bool skipErrors,
+    bool isDebug,
   });
 
   /// Send a message to all loaded plugins.
@@ -109,8 +111,12 @@ class PluginManagerImpl extends PluginManager {
     final plugins =
         await directory.list().where((entity) => entity is File).toList();
 
+    final machine = await (isDebug ? Future.value(null) : Arch.machine);
+
     return plugins.whereType<File>().where((file) {
-      return isDebug ? file.path.endsWith('.dart') : file.path.endsWith('.aot');
+      return isDebug
+          ? file.path.endsWith('.dart')
+          : file.path.endsWith('$machine.aot');
     }).toList();
   }
 
@@ -118,18 +124,44 @@ class PluginManagerImpl extends PluginManager {
   Future<List<PluginReference>> loadPlugins({
     Duration timeout = const Duration(seconds: 5),
     bool skipErrors = true,
+    bool isDebug = isJitCompiled,
   }) async {
-    final plugins = await listPlugins();
+    final plugins = await listPlugins(
+      isDebug: isDebug,
+    );
 
     for (final plugin in plugins) {
-      final loader = PluginLoaderImpl();
-      final reference = await loader.load(plugin);
+      try {
+        // Check checksum before loading in aot mode
+        if (!isDebug) {
+          final checksumFile =
+              File('${plugin.path.replaceAll('.aot', '')}.checksum');
+          final checksum = await checksumFile.readAsString();
 
-      if (_plugins.containsKey(reference)) {
-        throw Exception('Plugin $reference already loaded or conflicted');
+          final computedChecksum = await sha3_256.file(plugin);
+
+          if (checksum != computedChecksum.toString()) {
+            throw Exception(
+                'Checksum mismatch for $plugin : $checksum != $computedChecksum');
+          }
+        }
+
+        // Load the plugin
+        final loader = PluginLoaderImpl();
+        final reference = await loader.load(plugin);
+
+        if (_plugins.containsKey(reference)) {
+          throw Exception('Plugin $reference already loaded or conflicted');
+        }
+
+        _plugins[reference] = loader;
+      } catch (e) {
+        if (skipErrors) {
+          logger.warning('Error while loading plugin $plugin, but skipping it');
+        } else {
+          rethrow;
+        }
       }
-
-      _plugins[reference] = loader;
     }
 
     await broadcast(

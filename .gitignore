@@ -7,3 +7,5 @@
 *.jit
 *.kernel
 *.out
+*.checksum
+*.DS_Store
