@@ -1,0 +1,5 @@
+*.aot
+*.exe
+*.out
+*.jit
+*.tar
