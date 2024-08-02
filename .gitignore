@@ -1,5 +1,9 @@
-*.aot
+# https://dart.dev/guides/libraries/private-files
+# Created by `dart pub`
+.dart_tool/
 *.exe
-*.out
+*.aot
+*.dill
 *.jit
-*.tar
+*.kernel
+*.out
