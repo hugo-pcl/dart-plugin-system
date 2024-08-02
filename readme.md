@@ -1,6 +1,7 @@
 # Dart Plugin System
 
-> **Note:** This project is a Proof of Concept and is not intended to be used in production.
+> [!NOTE]
+> This project is a Proof of Concept and is not intended to be used in production.
 
 Check Architecture on [architecture.md](docs/architecture.md)
 
