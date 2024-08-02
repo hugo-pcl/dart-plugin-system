@@ -170,26 +170,41 @@ enum Arch {
   arm64,
   unknown;
 
+  static Arch? _computed;
+
   static Future<Arch> get() async {
-    String? cpu;
-
-    try {
-      if (Platform.isWindows) {
-        cpu = Platform.environment['PROCESSOR_ARCHITECTURE'];
-      } else {
-        var info = await Process.run('uname', ['-m']);
-        cpu = info.stdout.toString().replaceAll('\n', '');
-      }
-
-      return switch (cpu.toString().toLowerCase()) {
-        'x86_64' || 'x64' || 'amd64' => Arch.x86_64,
-        'x86' || 'i386' || 'x32' || '386' || 'amd32' => Arch.x86,
-        'arm64' || 'aarch64' || 'a64' => Arch.arm64,
-        'arm' || 'arm32' || 'a32' => Arch.arm,
-        _ => Arch.unknown,
-      };
-    } catch (e) {
-      return Arch.unknown;
+    if (_computed != null) {
+      return _computed!;
     }
+
+    return _computed = await () async {
+      String? cpu;
+
+      try {
+        if (Platform.isWindows) {
+          cpu = Platform.environment['PROCESSOR_ARCHITECTURE'];
+        } else {
+          var info = await Process.run('uname', ['-m']);
+          cpu = info.stdout.toString().replaceAll('\n', '');
+        }
+
+        return switch (cpu.toString().toLowerCase()) {
+          'x86_64' || 'x64' || 'amd64' => Arch.x86_64,
+          'x86' || 'i386' || 'x32' || '386' || 'amd32' => Arch.x86,
+          'arm64' || 'aarch64' || 'a64' => Arch.arm64,
+          'arm' || 'arm32' || 'a32' => Arch.arm,
+          _ => Arch.unknown,
+        };
+      } catch (e) {
+        return Arch.unknown;
+      }
+    }.call();
+  }
+
+  static Future<String> get machine async {
+    final platform = Platform.operatingSystem.toLowerCase();
+    final arch = await get().then((arch) => arch.name.toLowerCase());
+
+    return '$platform-$arch';
   }
 }
